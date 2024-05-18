@@ -1,12 +1,9 @@
-import os
+
 import time
-import random
 import argparse
-import subprocess
 from PIL import Image
 
 from immich_data import ImmichConnection
-from image_database import ImageData
 from image_database import ImageDatabase
 from settings import Settings
 from screen import Screen

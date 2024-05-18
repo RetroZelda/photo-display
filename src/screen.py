@@ -1,8 +1,3 @@
-import os
-import time
-import random
-import requests
-import subprocess
 
 from inky.auto import auto
 from PIL import Image
