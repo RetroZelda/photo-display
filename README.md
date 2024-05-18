@@ -4,14 +4,16 @@ Connect a Raspberry Pi to an Immich Server to display an album on an Inky Impres
 ## Running
 make sure you have imagemagick installed on your pi
 
-./install.sh once to get the venv and dependencies setup
-./uninstall.sh will remove the venv
+**./setup.sh install** - to install
+**./setup.sh install cron** - to install a cron job
+**./setup.sh uninstall** - to uninstall
 
 modify ./config.json to add your immich server url, api key, and desired albums. 
 
 ./run.sh will run everything.  
 use --offline to make it run offline.  Make sure to run it once online so it can sync with immich
 
+./run_with_wifi.sh will attempt to startup wifi and shutdown wifi before running the script.  If it cant connect to wifi then it will run with --offline
 
 ## Configuration:
 
