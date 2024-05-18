@@ -1,0 +1,18 @@
+{
+    "Settings": {
+      "ImmichServerUrl": "immich_instance_address",
+      "ApiKey": "immich_api_key",
+      "Albums": ["immich_album_ids"],
+      "SleepTime": 10,
+      "Saturation": 0.5,
+      "DataPath": "./data",
+      "ImageCachePath": "./data/photos",
+      "ImageDatabaseFile": "./data/photos.db",
+      "PreferredOrientation": "landscape",
+      "ForceOrientation": false,
+      "PreserveAspect": true,
+      "Letterbox": true,
+      "LetterboxColor": "white"
+    }
+  }
+  
