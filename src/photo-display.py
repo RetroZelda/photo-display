@@ -26,8 +26,8 @@ def main(args):
     if not args.offline:
         for album_id in settings.Albums:
             immich.sync_album(album_id)
-        database.process_albums(immich)
         database.purge_missing(immich)
+        database.process_albums(immich)
       
     while True:            
         target_image = database.get_random_image()
