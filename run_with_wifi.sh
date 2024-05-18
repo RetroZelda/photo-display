@@ -24,6 +24,7 @@ check_internet_access() {
 
 # Main script
 wifi_connected=false
+internet_connected=false
 
 # Check WiFi status
 if ! check_wifi_status; then
@@ -45,7 +46,19 @@ if ! check_wifi_status; then
 fi
 
 # Check internet access
-if $wifi_connected && check_internet_access; then
+for ((i=0; i<30; i++)); do
+    sleep 1
+    if check_internet_access; then
+        echo "Internet is active."
+        internet_connected=true
+        sleep 5
+        break
+    elif ((i == 29)); then
+        echo "Unable to connect to the internet."
+    fi
+done
+
+if $wifi_connected && $internet_connected; then
     echo "Connected to WiFi and internet access is available."
     ./run.sh
 else
