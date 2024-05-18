@@ -34,7 +34,6 @@ install_application() {
 uninstall_application() {
     echo "Uninstalling application..."
     rm -drf $venv_name
-    rm -drf ./data
 }
 
 create_cron_job() {
