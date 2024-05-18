@@ -1,8 +1,8 @@
 {
     "Settings": {
-      "ImmichServerUrl": "immich_instance_address",
-      "ApiKey": "immich_api_key",
-      "Albums": ["immich_album_ids"],
+      "ImmichServerUrl": "https://photos.retrozelda.com",
+      "ApiKey": "XygxlKaeh1vWPTzGfujXxOazpku36njumB91ndx0",
+      "Albums": ["5cb1cc51-4797-4c86-b34d-257ab132e2c4"],
       "SleepTime": 10,
       "Saturation": 0.5,
       "DataPath": "./data",
@@ -14,5 +14,5 @@
       "Letterbox": true,
       "LetterboxColor": "white"
     }
-  }
+}
   
