@@ -43,19 +43,22 @@ if ! check_wifi_status; then
             echo "Failed to enable WiFi."
         fi
     done
+else
+    wifi_connected=true
 fi
 
 # Check internet access
+echo "Checking for internet access..."
 for ((i=0; i<30; i++)); do
-    sleep 1
     if check_internet_access; then
         echo "Internet is active."
         internet_connected=true
-        sleep 5
+        sleep 1
         break
     elif ((i == 29)); then
         echo "Unable to connect to the internet."
     fi
+    sleep 1
 done
 
 if $wifi_connected && $internet_connected; then
