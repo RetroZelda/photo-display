@@ -27,7 +27,9 @@ def main(args):
             album_data.append(album)
 
     screen = Screen(settings)
-    #screen.init_inky()
+
+    if not args.no_screen:
+        screen.init_inky()
 
     database = ImageDatabase(settings, screen.resolution)    
     database.process_albums(immich)
@@ -45,6 +47,7 @@ def main(args):
     
 parser = argparse.ArgumentParser(description='Display photos from an Immich album onto an Inky Screen.')
 parser.add_argument('--config', help='config json file', default="./config.json", required=False)
+parser.add_argument('--no-screen', help='dont init inky screen. useful for debugging', action='store_true', required=False)
 if __name__ == "__main__":
     args = parser.parse_args()
     main(args)
