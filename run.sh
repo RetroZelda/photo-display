@@ -10,7 +10,7 @@ python3 -m venv "$venv_name"
 source "$venv_name/bin/activate"
 
 # Install dependencies
-pip3 install inky #[rpi,example-depends]
+pip3 install inky [rpi,example-depends]
 pip3 install Pillow
 pip3 install requests
 
