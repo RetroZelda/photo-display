@@ -61,7 +61,6 @@ class ImageDatabase:
             self.save_changes()
         else:
             self.load_data()
-            print(self.data)
 
     def get_resize_command(self, image_data : ImageData):
         command = [
