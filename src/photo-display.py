@@ -38,9 +38,13 @@ def main(args):
             image = OpenImage(target_image, screen.resolution)
             print(f"Displaying {target_image.file_path}")
             screen.set_image(image)
-        
-        print(f"Sleeping for {settings.SleepTime} seconds...")
-        time.sleep(settings.SleepTime)
+
+        if settings.SleepTime > 0:
+            print(f"Sleeping for {settings.SleepTime} seconds...")
+            time.sleep(settings.SleepTime)
+        else:
+            print(f"Sleep time set for {settings.SleepTime} seconds... Exiting")
+            break
     
 parser = argparse.ArgumentParser(description='Display photos from an Immich album onto an Inky Screen.')
 parser.add_argument('--config', help='config json file', default="./config.json", required=False)
