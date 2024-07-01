@@ -3,6 +3,10 @@ import requests
 import json
 import os
 
+API_ADDR = "/api"
+GET_ALBUMS_API = f"/albums"
+POST_DOWNLOADARCHIVE_API = f"/download/archive"
+
 class ImmichAssetData:
     def __init__(self, asset_dict):
         self.asset_dict = asset_dict
@@ -32,7 +36,7 @@ class ImmichAlbum(ImmichAssetData):
 
 class ImmichConnection:
     def __init__(self, server_url, api_key):
-        self.server_url = server_url
+        self.server_url = f"{server_url}{API_ADDR}"
         self.api_key = api_key
         self.albums = {}
     
@@ -40,7 +44,7 @@ class ImmichConnection:
         return self.albums.get(album_id)
     
     def sync_album(self, album_id) -> ImmichAlbum:
-        url = f"{self.server_url}/api/album/{album_id}"
+        url = f"{self.server_url}{GET_ALBUMS_API}/{album_id}"
 
         payload = {}
         headers = {
@@ -59,36 +63,35 @@ class ImmichConnection:
 
         return None
     
-    def download_asset(self, image_asset : ImmichAssetData, target_dir, force = False):
+    def download_assets(self, assets_to_download, output_file, force = False):
 
-        url = f"{self.server_url}/api/download/asset/{image_asset.id}"
-        output_file = os.path.join(target_dir, image_asset.originalFileName)
-
-        if os.path.exists(output_file):
-            print(f"Asset already exists {image_asset.originalFileName}")
-            if not force:
-                return output_file
-
-        payload = {}
+        if len(assets_to_download) == 0:
+            print(f"Downloading 0 assets.... dumbass")
+            return False
+        
+        url = f"{self.server_url}{POST_DOWNLOADARCHIVE_API}"
+        payload = json.dumps({
+            "assetIds": [d['asset_id'] for d in assets_to_download]
+        })
         headers = {
-            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Accept': 'octet-stream',
             'x-api-key': self.api_key
         }
 
-        print(f"Downloading {image_asset.originalFileName}")
+        print(f"Downloading {len(assets_to_download)} assets")
         with requests.post(url, headers=headers, data=payload, stream=True) as response:
             if response.status_code == 200:
                 with open(output_file, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
 
-                print(f"Asset downloaded to: {output_file}")
-                return output_file
+                print(f"Assets downloaded to: {output_file}")
+                return True
             else:
-                print(f"Failed to download asset. Status code: {response.status_code}:\n{response.text}")
+                print(f"Failed to download assets. Status code: {response.status_code}:\n{response.text}")
 
-
-        return None
+        return False
 
 
 

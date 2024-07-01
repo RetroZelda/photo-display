@@ -1,6 +1,8 @@
 import os
 import csv
 import random
+import zipfile
+import tempfile
 import subprocess
 from datetime import datetime
 
@@ -91,6 +93,7 @@ class ImageDatabase:
     
     def process_albums(self, immich : ImmichConnection):
 
+        assets_to_download = []
         for album_id, album in immich.albums.items():
             for asset_id, asset in album.image_assets.items():
 
@@ -99,10 +102,41 @@ class ImageDatabase:
                 if image_data is None:
                     image_data = ImageData(album_id, asset_id)
                     self.data.append(image_data)
-                    
-                if image_data.file_path is None or not os.path.exists(image_data.file_path):
-                    asset_file = immich.download_asset(asset, self.image_directory, False)
-                    image_data.file_path = asset_file
+
+                if image_data.file_path is not None and os.path.exists(image_data.file_path):
+                    continue
+
+                output_file = os.path.join(self.image_directory, asset.originalFileName)
+                if os.path.exists(output_file):
+                    print(f"Asset already exists {asset.originalFileName}")
+                    continue
+
+                assets_to_download.append({'asset':asset, 'album_id':album_id, 'asset_id':asset_id})
+
+        if len(assets_to_download) == 0:
+            print("No new Assets to download")
+            return
+        
+        # Create a temporary file
+        temp_file_name = ""
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_file_name = temp_file.name  
+
+        download_success = immich.download_assets(assets_to_download, temp_file_name, False)
+        if not download_success:
+            print("Failed to download assets")
+        else:
+            print(f"Extracting new assets to {self.image_directory}")
+            with zipfile.ZipFile(temp_file_name, 'r') as zip_ref:
+                zip_ref.extractall(self.image_directory)
+
+            for asset in assets_to_download:
+                print(f"Processing new image {asset['asset'].originalFileName}")
+                image_data = self.get_image(asset['album_id'], asset['asset_id'])
+                if image_data is None:
+                    image_data = ImageData(asset['album_id'], asset['asset_id'])
+                    self.data.append(image_data)
+                image_data.file_path = f"{self.image_directory}/{asset['asset'].originalFileName}"
 
                 # ensure the image is the proper size
                 cur_resolution = image_data.get_resolution()
@@ -111,6 +145,7 @@ class ImageDatabase:
                     print(f"Resizing {image_data.file_path} to {self.target_resolution.resolution_string}")
                     subprocess.run(resize_command)
                     
+        os.remove(temp_file_name)
         self.save_changes()
     
     def purge_missing(self, immich : ImmichConnection):
