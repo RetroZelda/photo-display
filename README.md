@@ -5,9 +5,13 @@ Connect a Raspberry Pi to an Immich Server to display an album on an Inky Impres
 make sure you have imagemagick installed on your pi
 
 **./setup.sh install** - to install
+
 **./setup.sh install cron** - to install a cron job
+
 **./setup.sh install systemd** - to install a timed systemd service
+
 **./setup.sh uninstall** - to uninstall
+
 
 modify ./config.json to add your immich server url, api key, and desired albums. 
 
