@@ -24,10 +24,18 @@ def main(args):
     database = ImageDatabase(settings, screen.resolution)
 
     if not args.offline:
+        no_connection = False
         for album_id in settings.Albums:
-            immich.sync_album(album_id)
-        database.purge_missing(immich)
-        database.process_albums(immich)
+
+            # bit of a hack so we dont purge everything if we fail to get an album
+            # TODO: fix this up so we only attempt to purge successful albums
+            if immich.sync_album(album_id) is None:
+                no_connection = True
+                break
+        
+        if not no_connection:
+            database.purge_missing(immich)
+            database.process_albums(immich)
       
     while True:            
         target_image = database.get_random_image()
