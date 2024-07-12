@@ -9,7 +9,8 @@ wifi_script="$current_directory/run_with_wifi.sh"
 
 # timers
 cron="0 * * * * "
-timer_rule="OnUnitActiveSec=1h"
+timer_rule="OnBootSec=1s
+OnActiveSec=1h"
 
 unit_file="$current_directory/photo-display.service"
 timer_file="$current_directory/photo-display.timer"
@@ -56,7 +57,7 @@ Description=Photo Display service
 
 [Service]
 WorkingDirectory=$current_directory
-ExecStart=$current_directory/run_with_wifi.sh
+ExecStart=$wifi_script
 Type=oneshot
 User=$current_user
 
@@ -92,6 +93,9 @@ WantedBy=timers.target
 
     echo "Starting timer"
     sudo systemctl enable --now photo-display.timer
+
+    echo "Running Once"
+    sudo systemctl start photo-display.service
 }
 
 remove_systemd_service() {
