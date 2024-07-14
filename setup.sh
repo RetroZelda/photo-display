@@ -56,7 +56,7 @@ Description=Photo Display service
 [Service]
 WorkingDirectory=$current_directory
 ExecStart=$wifi_script
-Type=oneshot
+Type=simple
 User=$current_user
 
 [Install]
