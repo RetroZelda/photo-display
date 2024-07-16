@@ -10,7 +10,7 @@ wifi_script="$current_directory/run_with_wifi.sh"
 # timers
 cron="0 * * * * "
 timer_rule="OnBootSec=1min
-OnUnitActiveSec=1h"
+OnUnitInactiveSec=1h"
 
 unit_file="$systemd_directory/photo-display.service"
 timer_file="$systemd_directory/photo-display.timer"
