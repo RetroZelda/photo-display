@@ -9,6 +9,7 @@ from datetime import datetime
 from immich_data import ImmichConnection, ImmichAlbum, ImmichAssetData
 from settings import Settings
 from screen import ScreenResolution
+from helpers import Orientation
 
 class ImageData:
     def __init__(self, album_id, asset_id, file_path = None, last_used_date = '1993-12-29 00:00:00', use_count = '0'):
@@ -29,6 +30,11 @@ class ImageData:
     def from_list(cls, data):
         return cls(*data)
     
+    def enforce_exif_rotation(self):
+        # Use the identify command to get image dimensions and then strif the exif data
+        command = ['convert', self.file_path, "-auto-orient", "-strip", self.file_path]
+        command_output = subprocess.check_output(command, universal_newlines=True)
+    
     def get_resolution(self) -> ScreenResolution:
         # Use the identify command to get image dimensions
         identify_command = ['identify', '-format', '%w %h', self.file_path]
@@ -48,6 +54,23 @@ class ImageData:
         self.last_used_date = current_datetime
         self.use_count = self.use_count + 1
 
+    def get_orientation(self, asset_info : ImmichAssetData) -> Orientation:
+
+        if asset_info is not None:
+            exif_info = asset_info.asset_dict["exifInfo"]
+            if exif_info is not None:
+                value = exif_info["orientation"]
+                if value is not None:
+                    if value in [1, 2, 3, 4]:
+                        return Orientation.LANDSCAPE
+                    elif value in [5, 6, 7, 8]:
+                        return Orientation.PORTRAIT
+
+        # if not part of the asset data, return based on the resolution
+        resolution = self.get_resolution()
+        return resolution.orientation
+
+
 class ImageDatabase:
     def __init__(self, settings : Settings, target_resolution : ScreenResolution):
         self.settings = settings
@@ -64,11 +87,38 @@ class ImageDatabase:
         else:
             self.load_data()
 
-    def get_resize_command(self, image_data : ImageData):
+    def get_resize_command(self, image_data : ImageData, asset_info : ImmichAssetData = None):
         command = [
             'convert',
             image_data.file_path, # input path
+            '-strip',
+            '-auto-orient'
         ]
+
+        # handle needed rotations
+        asset_orientation = image_data.get_orientation(asset_info)
+        preferred_orientation = self.settings.get_preferred_orientation()
+        target_orientation = self.target_resolution.orientation
+
+
+        if self.settings.ForceOrientation:
+            
+            if preferred_orientation == Orientation.LANDSCAPE and target_orientation == Orientation.PORTRAIT:
+                if asset_orientation == Orientation.LANDSCAPE:
+                    command.extend(['-rotate', "-90"])
+                if asset_orientation == Orientation.PORTRAIT:
+                    command.extend(['-rotate', "-90"])
+            elif preferred_orientation == Orientation.PORTRAIT and target_orientation == Orientation.LANDSCAPE:
+                if asset_orientation == Orientation.LANDSCAPE:
+                    command.extend(['-rotate', "-90"])
+                if asset_orientation == Orientation.PORTRAIT:
+                    command.extend(['-rotate', "-90"])
+        else:
+            # Rotate based on current and target orientation
+            if target_orientation == Orientation.LANDSCAPE and asset_orientation == Orientation.PORTRAIT:
+                command.extend(['-rotate', "90"])
+            elif target_orientation == Orientation.PORTRAIT and asset_orientation == Orientation.LANDSCAPE:
+                command.extend(['-rotate', "-90"])
 
         # set the resolution
         resolution = self.target_resolution.resolution_string
@@ -137,11 +187,13 @@ class ImageDatabase:
                     image_data = ImageData(asset['album_id'], asset['asset_id'])
                     self.data.append(image_data)
                 image_data.file_path = f"{self.image_directory}/{asset['asset'].originalFileName}"
+                image_data.enforce_exif_rotation() # apply exif rotation and then wipe exif
 
                 # ensure the image is the proper size
+                asset_info = immich.get_asset_info(asset['asset_id'])
                 cur_resolution = image_data.get_resolution()
                 if cur_resolution != self.target_resolution:
-                    resize_command = self.get_resize_command(image_data)
+                    resize_command = self.get_resize_command(image_data, asset_info)
                     print(f"Resizing {image_data.file_path} to {self.target_resolution.resolution_string}")
                     subprocess.run(resize_command)
                     
@@ -174,7 +226,7 @@ class ImageDatabase:
         self.save_changes()
 
     def purge_all(self):
-        # purge them from disk and memory
+        # purge database from disk and memory
         while len(self.data) > 0:
             image_data = self.data[0]
             if os.path.exists(image_data.file_path):
@@ -183,6 +235,16 @@ class ImageDatabase:
             else:
                 print(f"Missing: {image_data.file_path}.")
             self.data.remove(image_data)
+
+        # purge all remaining files from disk
+        for filename in os.listdir(self.settings.ImageCachePath):
+            file_path = os.path.join(self.settings.ImageCachePath, filename)
+            try:
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    print(f"Removed: {file_path}.")
+            except Exception as e:
+                print(f"Failed to delete {file_path}. Reason: {e}")
                 
         self.save_changes()
         

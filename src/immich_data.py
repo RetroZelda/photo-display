@@ -5,6 +5,7 @@ import os
 
 API_ADDR = "/api"
 GET_ALBUMS_API = f"/albums"
+GET_ASSETINFO_API = f"/assets"
 POST_DOWNLOADARCHIVE_API = f"/download/archive"
 
 class ImmichAssetData:
@@ -60,6 +61,25 @@ class ImmichConnection:
             return album_info            
         else:
             print(f"Failed to fetch album. Status code: {response.status_code}")
+
+        return None
+    
+    def get_asset_info(self, asset_id):
+        url = f"{self.server_url}{GET_ASSETINFO_API}/{asset_id}"
+
+        payload = {}
+        headers = {
+        'Accept': 'application/json',
+        'x-api-key': self.api_key
+        }
+
+        print(f"Fetching asset info {asset_id}")
+        response = requests.request("GET", url, headers=headers, data=payload)
+        if response.status_code == 200:
+            asset_info = ImmichAssetData(json.loads(response.text))
+            return asset_info            
+        else:
+            print(f"Failed to fetch asset info. Status code: {response.status_code}")
 
         return None
     
