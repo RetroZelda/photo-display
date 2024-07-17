@@ -17,6 +17,8 @@ modify ./config.json to add your immich server url, api key, and desired albums.
 
 ./run.sh will run everything.  
 use --offline to make it run offline.  Make sure to run it once online so it can sync with immich
+use --force-refresh to clean all local data and redownload everything.  Use this if you change your config.json.  Must be online.
+use --clean to clean all local data
 
 ./run_with_wifi.sh will attempt to startup wifi and shutdown wifi before running the script.  If it cant connect to wifi then it will run with --offline
 
