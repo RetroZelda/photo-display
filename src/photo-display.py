@@ -17,6 +17,11 @@ def main(args):
     settings = Settings(args.config)    
     screen = Screen(settings)
 
+    if args.clean:
+        database = ImageDatabase(settings, screen.resolution)
+        database.purge_all()
+        return
+
     if not args.no_screen:
         screen.init_inky()
 
@@ -25,6 +30,11 @@ def main(args):
 
     if not args.offline:
         no_connection = False
+
+        # wipe everything local before we start
+        if args.force_refresh:
+            database.purge_all()
+
         for album_id in settings.Albums:
 
             # bit of a hack so we dont purge everything if we fail to get an album
@@ -55,6 +65,8 @@ parser = argparse.ArgumentParser(description='Display photos from an Immich albu
 parser.add_argument('--config', help='config json file', default="./config.json", required=False)
 parser.add_argument('--offline', help='dont connect to the network and use what is in the database', action='store_true', required=False)
 parser.add_argument('--no-screen', help='dont init inky screen. useful for debugging', action='store_true', required=False)
+parser.add_argument('--force-refresh', help='Force refresh by clearing everything local and redownloading all photos. Must be online.', action='store_true', required=False)
+parser.add_argument('--clean', help='Clear everything local', action='store_true', required=False)
 if __name__ == "__main__":
     args = parser.parse_args()
     main(args)

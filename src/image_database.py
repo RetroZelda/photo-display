@@ -172,6 +172,19 @@ class ImageDatabase:
                 print(f"{image_data.file_path} deleted successfully.")
                 
         self.save_changes()
+
+    def purge_all(self):
+        # purge them from disk and memory
+        while len(self.data) > 0:
+            image_data = self.data[0]
+            if os.path.exists(image_data.file_path):
+                os.remove(image_data.file_path)
+                print(f"Deleted: {image_data.file_path}.")
+            else:
+                print(f"Missing: {image_data.file_path}.")
+            self.data.remove(image_data)
+                
+        self.save_changes()
         
     def load_data(self):
         with open(self.database_file, 'r', newline='') as csvfile:
