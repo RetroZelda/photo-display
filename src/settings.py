@@ -2,6 +2,8 @@ import os
 import json
 from pathlib import Path
 
+from helpers import Orientation
+
 class Settings:
     def __init__(self, file_path):
         self.load_settings(file_path)
@@ -32,4 +34,7 @@ class Settings:
         except json.JSONDecodeError:
             print(f"Error decoding JSON in '{file_path}'.")
         return False
+    
+    def get_preferred_orientation(self) -> Orientation:
+        return Orientation.from_string(self.PreferredOrientation)
             
