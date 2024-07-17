@@ -4,6 +4,7 @@ import random
 import zipfile
 import tempfile
 import subprocess
+from tqdm import tqdm
 from datetime import datetime
 
 from immich_data import ImmichConnection, ImmichAlbum, ImmichAssetData
@@ -178,7 +179,14 @@ class ImageDatabase:
         else:
             print(f"Extracting new assets to {self.image_directory}")
             with zipfile.ZipFile(temp_file_name, 'r') as zip_ref:
-                zip_ref.extractall(self.image_directory)
+                
+                file_list = zip_ref.namelist()
+                with tqdm(total=len(file_list), 
+                          desc=f"Extracting to {self.image_directory}", 
+                          unit='file') as progress_bar:
+                    for file in file_list:
+                        zip_ref.extract(file, self.image_directory)
+                        progress_bar.update(1)
 
             for asset in assets_to_download:
                 print(f"Processing new image {asset['asset'].originalFileName}")
