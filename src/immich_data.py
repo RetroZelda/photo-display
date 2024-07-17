@@ -3,6 +3,8 @@ import requests
 import json
 import os
 
+from tqdm import tqdm
+
 API_ADDR = "/api"
 GET_ALBUMS_API = f"/albums"
 GET_ASSETINFO_API = f"/assets"
@@ -99,12 +101,17 @@ class ImmichConnection:
             'x-api-key': self.api_key
         }
 
-        print(f"Downloading {len(assets_to_download)} assets")
         with requests.post(url, headers=headers, data=payload, stream=True) as response:
             if response.status_code == 200:
-                with open(output_file, 'wb') as f:
+                total_size = int(response.headers.get('content-length', 0))
+                with open(output_file, 'wb') as f, tqdm( desc=f"\tDownloading {len(assets_to_download)} assets", 
+                                                         total=total_size,
+                                                         unit='B',
+                                                         unit_scale=True,
+                                                         unit_divisor=1024) as progress_bar:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
+                        progress_bar.update(len(chunk))
 
                 print(f"Assets downloaded to: {output_file}")
                 return True

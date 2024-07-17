@@ -28,6 +28,7 @@ install_application() {
     pip3 install inky[rpi,example-depends] >> /dev/null
     pip3 install Pillow >> /dev/null
     pip3 install requests >> /dev/null
+    pip3 install tqdm >> /dev/null
 }
 
 uninstall_application() {
