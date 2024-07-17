@@ -1,13 +1,60 @@
 
 import time
 import argparse
+import subprocess
 from PIL import Image
+from urllib.parse import urlparse
 
 from immich_data import ImmichConnection
 from image_database import ImageDatabase
 from settings import Settings
 from screen import Screen
 
+def sanitize_host(url):
+    """
+    Strip URL components and extract the host.
+    
+    :param url: The URL to sanitize.
+    :return: The sanitized host.
+    """
+    parsed_url = urlparse(url)
+    host = parsed_url.netloc or parsed_url.path
+    # Remove 'www.' if present
+    if host.startswith('www.'):
+        host = host[4:]
+    return host
+
+def ping_server(url, count=4, timeout=2):
+    """
+    Ping a server to check if a connection can be made.
+
+    :param host: The hostname or IP address of the server.
+    :param count: Number of ping requests to send.
+    :param timeout: Timeout for each ping request in seconds.
+    :return: True if the server is reachable, False otherwise.
+    """
+    host = sanitize_host(url)
+    print(f"Checking connection to {host}")
+    try:
+        # Perform the ping command
+        output = subprocess.run(
+            ["ping", "-c", str(count), "-W", str(timeout), host],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+
+        # Check the return code
+        if output.returncode == 0:
+            print(f"Ping to {host} was successful.")
+            return True
+        else:
+            print(f"Ping to {host} failed.")
+            return False
+
+    except Exception as e:
+        print(f"An error occurred while pinging {host}: {e}")
+        return False
+    
 def OpenImage(image, resolution):    
     print(f"Opening {image.file_path}")
     resizedimage = Image.open(image.file_path).resize(resolution.resolution)
@@ -29,23 +76,28 @@ def main(args):
     database = ImageDatabase(settings, screen.resolution)
 
     if not args.offline:
-        no_connection = False
 
-        # wipe everything local before we start
-        if args.force_refresh:
-            database.purge_all()
+        # ping hte server to ensure we have a connection
+        if not ping_server(settings.ImmichServerUrl):
+            print("Unable to connect to Immich server.  Running offline.")
+        else:
+            no_connection = False
 
-        for album_id in settings.Albums:
+            # wipe everything local before we start
+            if args.force_refresh:
+                database.purge_all()
 
-            # bit of a hack so we dont purge everything if we fail to get an album
-            # TODO: fix this up so we only attempt to purge successful albums
-            if immich.sync_album(album_id) is None:
-                no_connection = True
-                break
-        
-        if not no_connection:
-            database.purge_missing(immich)
-            database.process_albums(immich)
+            for album_id in settings.Albums:
+
+                # bit of a hack so we dont purge everything if we fail to get an album
+                # TODO: fix this up so we only attempt to purge successful albums
+                if immich.sync_album(album_id) is None:
+                    no_connection = True
+                    break
+            
+            if not no_connection:
+                database.purge_missing(immich)
+                database.process_albums(immich)
       
     while True:            
         target_image = database.get_random_image()
