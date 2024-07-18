@@ -36,26 +36,10 @@ install_driver() {
 
     # Run make to build the kernel module
     echo "Building the kernel module..."
-    if make; then
+    if make install; then
         echo "Build succeeded."
     else
         echo "Build failed."
-        exit 1
-    fi
-
-    # Find the resulting .ko file
-    MODULE=$(find . -name "*.ko" | head -n 1)
-    if [ -z "$MODULE" ]; then
-        echo "No kernel module file found."
-        exit 1
-    fi
-
-    # Install the kernel module using insmod
-    echo "Installing the kernel module $MODULE..."
-    if sudo insmod "$MODULE"; then
-        echo "Kernel module installed successfully."
-    else
-        echo "Failed to install the kernel module."
         exit 1
     fi
 
@@ -63,11 +47,15 @@ install_driver() {
 }
 
 uninstall_driver(){
-    echo "Removing the kernel module $MODULE_NAME..."
-    if sudo rmmod "$MODULE_NAME"; then
-        echo "Kernel module removed successfully."
+
+    # Change to the repository directory
+    cd "$REPO_DIR" || { echo "Failed to enter directory $REPO_DIR"; exit 1; }
+
+    echo "Removing the kernel module..."
+    if make uninstall; then
+        echo "Removal succeeded."
     else
-        echo "Failed to remove the kernel module."
+        echo "Removal failed."
         exit 1
     fi
 
