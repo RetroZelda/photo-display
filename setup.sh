@@ -6,14 +6,85 @@ current_directory=$(pwd)
 systemd_directory="/etc/systemd/system"
 timer_directory="/etc/systemd/system/timers.target.wants"
 wifi_script="$current_directory/run_with_wifi.sh"
+monitor_script="$current_directory/scripts/monitor_inky_impression.sh"
+
+# button driver repository URL and the directory name
+REPO_URL="https://github.com/RetroZelda/inky-impression-btn-driver.git"
+REPO_DIR="inky-impression-btn-driver"
+MODULE_NAME="inky_impression_btn_driver"
 
 # timers
 cron="0 * * * * "
 timer_rule="OnBootSec=1min
 OnUnitInactiveSec=1h"
 
+monitor_file="$systemd_directory/button-monitor.service"
 unit_file="$systemd_directory/photo-display.service"
 timer_file="$systemd_directory/photo-display.timer"
+
+install_driver() {
+    echo "Cloning the repository from $REPO_URL..."
+    if git clone "$REPO_URL"; then
+        echo "Repository cloned successfully."
+    else
+        echo "Failed to clone the repository."
+        exit 1
+    fi
+
+    # Change to the repository directory
+    cd "$REPO_DIR" || { echo "Failed to enter directory $REPO_DIR"; exit 1; }
+
+    # Run make to build the kernel module
+    echo "Building the kernel module..."
+    if make; then
+        echo "Build succeeded."
+    else
+        echo "Build failed."
+        exit 1
+    fi
+
+    # Find the resulting .ko file
+    MODULE=$(find . -name "*.ko" | head -n 1)
+    if [ -z "$MODULE" ]; then
+        echo "No kernel module file found."
+        exit 1
+    fi
+
+    # Install the kernel module using insmod
+    echo "Installing the kernel module $MODULE..."
+    if sudo insmod "$MODULE"; then
+        echo "Kernel module installed successfully."
+    else
+        echo "Failed to install the kernel module."
+        exit 1
+    fi
+
+    echo "Button driver installed successfully."
+}
+
+uninstall_driver(){
+    echo "Removing the kernel module $MODULE_NAME..."
+    if sudo rmmod "$MODULE_NAME"; then
+        echo "Kernel module removed successfully."
+    else
+        echo "Failed to remove the kernel module."
+        exit 1
+    fi
+
+    # Change to the parent directory of the repository
+    cd ..
+    
+    # Delete the repository directory
+    echo "Deleting the repository directory $REPO_DIR..."
+    if rm -drf "$REPO_DIR"; then
+        echo "Repository directory deleted successfully."
+    else
+        echo "Failed to delete the repository directory."
+        exit 1
+    fi
+
+    echo "Button driver uninstalled successfully."
+}
 
 install_application() {
     echo "Installing environment..."
@@ -48,6 +119,34 @@ remove_cron_job() {
     # Use `grep -v` to remove the line containing the command
     (crontab -l | grep -v "$wifi_script") | crontab -
     echo "Cron job removed."
+}
+
+generate_monitor_service() {
+    monitor_content="[Unit]
+Description=Monitor Inky Impression Buttons
+After=network.target
+
+[Service]
+WorkingDirectory=$current_directory
+ExecStart=$monitor_script
+Restart=always
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
+"
+
+    # Write the unit content to the unit file
+    echo "Creating systemd service"
+    echo "$monitor_content" | sudo tee "$monitor_file" > /dev/null
+
+    echo "Reloading systemd daemon"
+    sudo systemctl daemon-reload
+
+    echo "Starting monitor"
+    sudo systemctl enable button-monitor.service
+    sudo systemctl start button-monitor.service
 }
 
 generate_systemd_service() {
@@ -94,8 +193,14 @@ WantedBy=timers.target
 remove_systemd_service() {
 
     echo "Removing systemd services and timers"
+
+    sudo systemctl stop button-monitor.service
     sudo systemctl stop photo-display.timer
+
+    sudo systemctl disable button-monitor.service
     sudo systemctl disable photo-display.timer
+
+    sudo rm -f $monitor_file
     sudo rm -f $timer_file
     sudo rm -f $unit_file
 
@@ -105,6 +210,7 @@ remove_systemd_service() {
 
 if [[ "$1" == "install" ]]; then
     install_application
+    install_driver
 
     if [[ "$2" == "cron" ]]; then
         create_cron_job
@@ -115,11 +221,16 @@ if [[ "$1" == "install" ]]; then
         echo "Systemd service created."
         echo "Make sure to edit your config to have a SleepTime of 0!"
     fi
+
+    generate_monitor_service
+    echo "Button Monitor service created."
+
     sleep 3
     echo "Setup complete."
 
 elif [[ "$1" == "uninstall" ]]; then
     remove_cron_job
+    uninstall_driver
     uninstall_application
     remove_systemd_service
     echo "Uninstallation complete."
