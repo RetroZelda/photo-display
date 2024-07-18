@@ -11,7 +11,7 @@ monitor_script="$current_directory/scripts/monitor_inky_impression.sh"
 # button driver repository URL and the directory name
 REPO_URL="https://github.com/RetroZelda/inky-impression-btn-driver.git"
 REPO_DIR="inky-impression-btn-driver"
-MODULE_NAME="inky_impression_btn_driver"
+MODULE_NAME="inky-impression-btn-driver"
 
 # timers
 cron="0 * * * * "
@@ -37,6 +37,7 @@ install_driver() {
     # Run make to build the kernel module
     echo "Building the kernel module..."
     if make install; then
+        sudo modprobe $MODULE_NAME
         echo "Build succeeded."
     else
         echo "Build failed."
@@ -56,7 +57,7 @@ uninstall_driver(){
         echo "Removal succeeded."
     else
         echo "Removal failed."
-        exit 1
+        return
     fi
 
     # Change to the parent directory of the repository
@@ -68,7 +69,7 @@ uninstall_driver(){
         echo "Repository directory deleted successfully."
     else
         echo "Failed to delete the repository directory."
-        exit 1
+        return
     fi
 
     echo "Button driver uninstalled successfully."
