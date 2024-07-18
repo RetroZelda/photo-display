@@ -34,6 +34,12 @@ install_driver() {
     # Change to the repository directory
     cd "$REPO_DIR" || { echo "Failed to enter directory $REPO_DIR"; exit 1; }
 
+    # Check if the DKMS module already exists and remove it if necessary
+    if sudo dkms status | grep -q "${MODULE_NAME}"; then
+        echo "Removing existing DKMS module ${MODULE_NAME}..."
+        sudo dkms remove -m $MODULE_NAME --all
+    fi
+
     # Run make to build the kernel module
     echo "Building the kernel module..."
     if make install; then
