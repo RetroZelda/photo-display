@@ -57,7 +57,6 @@ uninstall_driver(){
         echo "Removal succeeded."
     else
         echo "Removal failed."
-        return
     fi
 
     # Change to the parent directory of the repository
