@@ -37,7 +37,7 @@ install_driver() {
     # Check if the DKMS module already exists and remove it if necessary
     if sudo dkms status | grep -q "${MODULE_NAME}"; then
         echo "Removing existing DKMS module ${MODULE_NAME}..."
-        sudo dkms remove -m $MODULE_NAME --all
+        sudo dkms remove -m $MODULE_NAME -v 1.0 --all
     fi
 
     # Run make to build the kernel module
