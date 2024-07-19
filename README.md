@@ -12,11 +12,16 @@ make sure you have imagemagick installed on your pi
 
 **./setup.sh uninstall** - to uninstall
 
+installation will attempt to sync, build, and - with dkms - install https://github.com/RetroZelda/inky-impression-btn-driver
 
 modify ./config.json to add your immich server url, api key, and desired albums. 
+modify ./scripts/monitor_inky_impression.sh to change what each of the buttons will do when pressed.  
+  by default Button A will sync and choose another picture and Button B will turn on NetworkManager
 
 ./run.sh will run everything.  
+use --config to point to a config.json file
 use --offline to make it run offline.  Make sure to run it once online so it can sync with immich
+use --no-screen to run without connecting to a screen.  useful for testing and debugging
 use --force-refresh to clean all local data and redownload everything.  Use this if you change your config.json.  Must be online.
 use --clean to clean all local data
 
