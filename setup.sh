@@ -23,13 +23,26 @@ unit_file="$systemd_directory/photo-display.service"
 timer_file="$systemd_directory/photo-display.timer"
 
 install_driver() {
-    echo "Cloning the repository from $REPO_URL..."
-    if git clone "$REPO_URL"; then
-        echo "Repository cloned successfully."
+    
+    # Check if the directory exists
+    if [ -d "$REPO_DIR" ]; then
+        echo "Directory exists. Force pulling the latest changes."
+        cd "$REPO_DIR"
+        # Ensure we are on the correct branch
+        git checkout main
+        # Fetch all changes and reset the branch to the latest commit, removing all local changes
+        git fetch origin
+        git reset --hard origin/main
     else
-        echo "Failed to clone the repository."
-        exit 1
+        echo "Cloning the repository from $REPO_URL..."
+        if git clone "$REPO_URL" "$REPO_DIR"; then
+            echo "Repository cloned successfully."
+        else
+            echo "Failed to clone the repository."
+            exit 1
+        fi
     fi
+
 
     # Change to the repository directory
     cd "$REPO_DIR" || { echo "Failed to enter directory $REPO_DIR"; exit 1; }
@@ -81,6 +94,10 @@ uninstall_driver(){
 }
 
 install_application() {
+
+    echo "Installing dependencies..."
+    sudo apt install -y imagemagick dkms python3 python3-dev raspberrypi-kernel-headers build-essential >> /dev/null
+
     echo "Installing environment..."
     
     # Create virtual environment
@@ -94,6 +111,7 @@ install_application() {
     pip3 install Pillow >> /dev/null
     pip3 install requests >> /dev/null
     pip3 install tqdm >> /dev/null
+    pip3 install wheel >> /dev/null
 }
 
 uninstall_application() {

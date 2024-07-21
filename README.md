@@ -2,7 +2,7 @@
 Connect a Raspberry Pi to an Immich Server to display an album on an Inky Impression display
 
 ## Running
-make sure you have imagemagick installed on your pi
+make sure you have SPI enabled on your pi.  To enable it run `sudo raspi-config` and find it in "Interface Options"
 
 **./setup.sh install** - to install
 
