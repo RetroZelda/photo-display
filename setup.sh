@@ -41,11 +41,9 @@ install_driver() {
             echo "Failed to clone the repository."
             exit 1
         fi
+
+        cd "$REPO_DIR" || { echo "Failed to enter directory $REPO_DIR"; exit 1; }
     fi
-
-
-    # Change to the repository directory
-    cd "$REPO_DIR" || { echo "Failed to enter directory $REPO_DIR"; exit 1; }
 
     # Check if the DKMS module already exists and remove it if necessary
     if sudo dkms status | grep -q "${MODULE_NAME}"; then
