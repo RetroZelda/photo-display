@@ -1,5 +1,9 @@
 
+import os
+import sys
 import time
+import fcntl
+import atexit
 import argparse
 import subprocess
 from PIL import Image
@@ -119,7 +123,38 @@ parser.add_argument('--offline', help='dont connect to the network and use what 
 parser.add_argument('--no-screen', help='dont init inky screen. useful for debugging', action='store_true', required=False)
 parser.add_argument('--force-refresh', help='Force refresh by clearing everything local and redownloading all photos. Must be online.', action='store_true', required=False)
 parser.add_argument('--clean', help='Clear everything local', action='store_true', required=False)
+
+
+lock_file_path = "/tmp/photo_display.lock"
+lock_file = None
+
+def release_lock():
+    if lock_file:
+        try:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+            lock_file.close()
+            os.remove(lock_file_path)
+            print("Lock released.")
+        except Exception as e:
+            print(f"Failed to release lock: {e}")
+            
 if __name__ == "__main__":
     args = parser.parse_args()
-    main(args)
+
+    # handle the file lock
+    atexit.register(release_lock) # ensure we release the lock
+    try:
+        lock_file = open(lock_file_path, "w")
+        fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        print("Another instance of the script is already running.")
+        sys.exit(1)
+
+    try:
+        main(args)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        sys.exit(1)
+    finally:
+        release_lock()
     
