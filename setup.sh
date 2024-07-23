@@ -6,6 +6,7 @@ current_directory=$(pwd)
 systemd_directory="/etc/systemd/system"
 timer_directory="/etc/systemd/system/timers.target.wants"
 wifi_script="$current_directory/run_with_wifi.sh"
+offline_script="$current_directory/run.sh --offline"
 monitor_script="$current_directory/scripts/monitor_inky_impression.sh"
 
 # button driver repository URL and the directory name
@@ -15,12 +16,15 @@ MODULE_NAME="inky-impression-btn-driver"
 
 # timers
 cron="0 * * * * "
-timer_rule="OnBootSec=1min
+hourly_timer_rule="OnBootSec=1min
 OnUnitInactiveSec=1h"
+daily_timer_rule="OnUnitInactiveSec=24h"
 
 monitor_file="$systemd_directory/button-monitor.service"
-unit_file="$systemd_directory/photo-display.service"
-timer_file="$systemd_directory/photo-display.timer"
+hourly_unit_file="$systemd_directory/photo-display-update.service"
+daily_unit_file="$systemd_directory/photo-display-sync.service"
+hourly_timer_file="$systemd_directory/photo-display-update.timer"
+daily_timer_file="$systemd_directory/photo-display-sync.timer"
 
 install_driver() {
     
@@ -160,8 +164,22 @@ WantedBy=multi-user.target
 }
 
 generate_systemd_service() {
-    unit_content="[Unit]
-Description=Photo Display service
+
+    hourly_unit_content="[Unit]
+Description=Photo Display service to update the photo
+
+[Service]
+WorkingDirectory=$current_directory
+ExecStart=$offline_script
+Type=simple
+User=$current_user
+
+[Install]
+WantedBy=multi-user.target
+"
+
+    daily_unit_content="[Unit]
+Description=Photo Display service to sync with immich and update the photo
 
 [Service]
 WorkingDirectory=$current_directory
@@ -173,11 +191,21 @@ User=$current_user
 WantedBy=multi-user.target
 "
 
-    timer_content="[Unit]
-Description=Run Photo Display service every hour
+    hourly_timer_content="[Unit]
+Description=Run Photo Display service every hour to change the photo
 
 [Timer]
-$timer_rule
+$hourly_timer_rule
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+"
+    daily_timer_content="[Unit]
+Description=Run Photo Display service every day to sync to immich and to change the photo
+
+[Timer]
+$daily_timer_rule
 Persistent=true
 
 [Install]
@@ -186,18 +214,21 @@ WantedBy=timers.target
 
     # Write the unit content to the unit file
     echo "Creating systemd service"
-    echo "$unit_content" | sudo tee "$unit_file" > /dev/null
-    echo "$timer_content" | sudo tee "$timer_file" > /dev/null
+    echo "$hourly_unit_content" | sudo tee "$hourly_unit_file" > /dev/null
+    echo "$daily_unit_content" | sudo tee "$daily_unit_file" > /dev/null
+    echo "$hourly_timer_content" | sudo tee "$hourly_timer_file" > /dev/null
+    echo "$daily_timer_content" | sudo tee "$daily_timer_file" > /dev/null
 
     echo "Reloading systemd daemon"
     sudo systemctl daemon-reload
 
     echo "Starting timer"
-    sudo systemctl enable --now photo-display.timer
+    sudo systemctl enable --now photo-display-update.timer
+    sudo systemctl enable --now photo-display-sync.timer
 
-    echo "Running Once"
-    sudo systemctl restart photo-display.timer
-    sudo systemctl start photo-display.service
+    #echo "Running Once"
+    #sudo systemctl restart photo-display-sync.timer
+    #sudo systemctl start photo-display-sync.service
 }
 
 remove_systemd_service() {
@@ -205,14 +236,18 @@ remove_systemd_service() {
     echo "Removing systemd services and timers"
 
     sudo systemctl stop button-monitor.service
-    sudo systemctl stop photo-display.timer
+    sudo systemctl stop photo-display-update.timer
+    sudo systemctl stop photo-display-sync.timer
 
     sudo systemctl disable button-monitor.service
-    sudo systemctl disable photo-display.timer
+    sudo systemctl disable photo-display-update.timer
+    sudo systemctl disable photo-display-sync.timer
 
     sudo rm -f $monitor_file
-    sudo rm -f $timer_file
-    sudo rm -f $unit_file
+    sudo rm -f $hourly_timer_file
+    sudo rm -f $daily_timer_file
+    sudo rm -f $hourly_unit_file
+    sudo rm -f $daily_unit_file
 
     echo "Reloading systemd daemon"
     systemctl daemon-reload

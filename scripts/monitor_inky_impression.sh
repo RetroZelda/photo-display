@@ -17,7 +17,8 @@ declare -A LAST_VALUES=(
 )
 
 # The systemd services to start with buttons
-PHOTO_NAME="photo-display" # btn_a
+PHOTO_CHANGE_NAME="photo-display-update" # btn_a
+PHOTO_SYNC_NAME="photo-display-sync" # btn_b
 NETWORKING_NAME="NetworkManager" # btn_b
 
 handle_btn_a() {
@@ -25,11 +26,11 @@ handle_btn_a() {
     echo "Button A value is $value."
 
     if [ "$value" -eq 1 ]; then
-        if ! systemctl is-active --quiet "$PHOTO_NAME"; then
-            echo "Starting $PHOTO_NAME because btn_a value is 1"
-            systemctl start "$PHOTO_NAME"
+        if ! systemctl is-active --quiet "$PHOTO_CHANGE_NAME" && ! systemctl is-active --quiet "$PHOTO_SYNC_NAME"; then
+            echo "Starting $PHOTO_CHANGE_NAME because btn_a value is 1"
+            systemctl start "$PHOTO_CHANGE_NAME"
         else
-            echo "$PHOTO_NAME is already running"
+            echo "$PHOTO_CHANGE_NAME is already running"
         fi
     fi
 }
@@ -39,11 +40,11 @@ handle_btn_b() {
     echo "Button B value is $value."
 
     if [ "$value" -eq 1 ]; then
-        if ! systemctl is-active --quiet "$NETWORKING_NAME"; then
-            echo "Starting $NETWORKING_NAME because btn_b value is 1"
-            systemctl start "$NETWORKING_NAME"
+        if ! systemctl is-active --quiet "$PHOTO_CHANGE_NAME" && ! systemctl is-active --quiet "$PHOTO_SYNC_NAME"; then
+            echo "Starting $PHOTO_SYNC_NAME because btn_b value is 1"
+            systemctl start "$PHOTO_SYNC_NAME"
         else
-            echo "$NETWORKING_NAME is already running"
+            echo "$PHOTO_SYNC_NAME is already running"
         fi
     fi
 }
@@ -59,7 +60,14 @@ handle_btn_d() {
     local value=$1
     echo "Button D value is $value."
     
-    # TODO: add custom logic here
+    if [ "$value" -eq 1 ]; then
+        if ! systemctl is-active --quiet "$NETWORKING_NAME"; then
+            echo "Starting $NETWORKING_NAME because btn_d value is 1"
+            systemctl start "$NETWORKING_NAME"
+        else
+            echo "$NETWORKING_NAME is already running"
+        fi
+    fi
 }
 
 # get initial state
