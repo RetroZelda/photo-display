@@ -70,5 +70,5 @@ else
 fi
 
 # Turn off WiFi
-#stop_wifi_service
-#echo "WiFi turned off."
+stop_wifi_service
+echo "WiFi turned off."
