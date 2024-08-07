@@ -31,10 +31,22 @@ class ImageData:
     def from_list(cls, data):
         return cls(*data)
     
-    def enforce_exif_rotation(self):
+    def enforce_exif_rotation(self, force_jpg):
+
         # Use the identify command to get image dimensions and then strif the exif data
-        command = ['convert', self.file_path, "-auto-orient", "-strip", self.file_path]
+        command = ['convert', self.file_path, "-auto-orient", "-strip"]
+        if force_jpg:
+            print(f"\tIt was HEIC so we will force it to be a jpg.  fuck apple")
+            command.append(self.file_path + ".jpg")
+        else:
+            command.append(self.file_path)
         command_output = subprocess.check_output(command, universal_newlines=True)
+
+        if force_jpg:
+            os.remove(self.file_path) # remove the old file type because it wasnt replaced during the command
+            self.file_path = self.file_path + ".jpg"
+            
+            
     
     def get_resolution(self) -> ScreenResolution:
         # Use the identify command to get image dimensions
@@ -88,7 +100,7 @@ class ImageDatabase:
         else:
             self.load_data()
 
-    def get_resize_command(self, image_data : ImageData, asset_info : ImmichAssetData = None, force_jpg = False):
+    def get_resize_command(self, image_data : ImageData, asset_info : ImmichAssetData = None):
         command = [
             'convert',
             image_data.file_path, # input path
@@ -133,10 +145,7 @@ class ImageDatabase:
             command.extend(['-gravity', 'center'])
             command.extend(['-extent', self.target_resolution.resolution_string])
 
-        if force_jpg:
-            command.append(image_data.file_path + ".jpg") # output path as jpg
-        else:
-            command.append(image_data.file_path) # output path            
+        command.append(image_data.file_path) # output path            
         return command
                         
     def get_image(self, album_id, asset_id) -> ImageData:
@@ -198,25 +207,21 @@ class ImageDatabase:
                     image_data = ImageData(asset['album_id'], asset['asset_id'])
                     self.data.append(image_data)
                 image_data.file_path = f"{self.image_directory}/{asset['asset'].originalFileName}"
-                image_data.enforce_exif_rotation() # apply exif rotation and then wipe exif
 
                 # HACK: Force heic to be jpg
                 force_jpg = False
                 if asset['asset'].originalMimeType == 'image/heic':
                     force_jpg = True
 
+                image_data.enforce_exif_rotation(force_jpg) # apply exif rotation and then wipe exif
 
                 # ensure the image is the proper size
                 asset_info = immich.get_asset_info(asset['asset_id'])
                 cur_resolution = image_data.get_resolution()
-                if cur_resolution != self.target_resolution or force_jpg:
-                    resize_command = self.get_resize_command(image_data, asset_info, force_jpg)
+                if cur_resolution != self.target_resolution:
+                    resize_command = self.get_resize_command(image_data, asset_info)
                     print(f"Resizing {image_data.file_path} to {self.target_resolution.resolution_string}")
                     subprocess.run(resize_command)
-                    if force_jpg:
-                        print(f"\tIt was HEIC so we forced it to be a jpg.  fuck apple")
-                        os.remove(image_data.file_path) # remove the old file type because it wasnt replaced during the command
-                        image_data.file_path = image_data.file_path + ".jpg"
 
 
                     
