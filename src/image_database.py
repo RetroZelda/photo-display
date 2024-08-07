@@ -88,7 +88,7 @@ class ImageDatabase:
         else:
             self.load_data()
 
-    def get_resize_command(self, image_data : ImageData, asset_info : ImmichAssetData = None):
+    def get_resize_command(self, image_data : ImageData, asset_info : ImmichAssetData = None, force_jpg = False):
         command = [
             'convert',
             image_data.file_path, # input path
@@ -133,7 +133,10 @@ class ImageDatabase:
             command.extend(['-gravity', 'center'])
             command.extend(['-extent', self.target_resolution.resolution_string])
 
-        command.append(image_data.file_path) # output path
+        if force_jpg:
+            command.append(image_data.file_path + ".jpg") # output path as jpg
+        else:
+            command.append(image_data.file_path) # output path            
         return command
                         
     def get_image(self, album_id, asset_id) -> ImageData:
@@ -197,13 +200,25 @@ class ImageDatabase:
                 image_data.file_path = f"{self.image_directory}/{asset['asset'].originalFileName}"
                 image_data.enforce_exif_rotation() # apply exif rotation and then wipe exif
 
+                # HACK: Force heic to be jpg
+                force_jpg = False
+                if asset['asset'].originalMimeType == 'image/heic':
+                    force_jpg = True
+
+
                 # ensure the image is the proper size
                 asset_info = immich.get_asset_info(asset['asset_id'])
                 cur_resolution = image_data.get_resolution()
-                if cur_resolution != self.target_resolution:
-                    resize_command = self.get_resize_command(image_data, asset_info)
+                if cur_resolution != self.target_resolution or force_jpg:
+                    resize_command = self.get_resize_command(image_data, asset_info, force_jpg)
                     print(f"Resizing {image_data.file_path} to {self.target_resolution.resolution_string}")
                     subprocess.run(resize_command)
+                    if force_jpg:
+                        print(f"\tIt was HEIC so we forced it to be a jpg.  fuck apple")
+                        os.remove(image_data.file_path) # remove the old file type because it wasnt replaced during the command
+                        image_data.file_path = image_data.file_path + ".jpg"
+
+
                     
         os.remove(temp_file_name)
         self.save_changes()
